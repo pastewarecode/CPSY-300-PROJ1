@@ -9,6 +9,9 @@ Key features:
 - Calculates averages and ratios
 - Identifies top protein-rich recipes
 - Visualizes macronutrient trends
+
+INSTALL DEPENDENCIES:
+pip install pandas seaborn matplotlib
 ------------------------------------------------
 Author: Cody Tran
 Date: 2024-08-08
