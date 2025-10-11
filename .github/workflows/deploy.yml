@@ -1,4 +1,4 @@
-name: CI/CD Pipeline (Task 4)
+name: CI/CD Pipeline (Task 4 - Build & Run Only)
 
 on:
   push:
@@ -13,6 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Optional: quick sanity check to catch missing files early
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -22,52 +23,27 @@ jobs:
         run: |
           python - << 'PY'
           import os
-          assert os.path.exists("Dockerfile")
-          assert os.path.exists("data_analysis.py")
-          assert os.path.exists("All_Diets.csv")
+          assert os.path.exists("Dockerfile"), "Dockerfile missing"
+          assert os.path.exists("data_analysis.py"), "data_analysis.py missing"
+          assert os.path.exists("All_Diets.csv"), "All_Diets.csv missing"
           print("Sanity OK")
           PY
 
       - name: Build Docker image
         run: docker build -t diet-analysis:ci .
 
-      - name: Run container (smoke test)
+      - name: Run container (smoke test) and collect outputs
         run: |
           mkdir -p outputs
-          docker run --rm -v "$PWD/outputs:/app/outputs" diet-analysis:ci
+          docker run --rm \
+            -v "$PWD/outputs:/app/outputs" \
+            diet-analysis:ci
+          echo "Outputs after run:"
           ls -la outputs || true
 
-      - name: Upload outputs as artifact
+      - name: Upload outputs as artifact (charts/CSVs/logs)
         uses: actions/upload-artifact@v4
         with:
           name: task4-outputs
           path: outputs/**
           if-no-files-found: ignore
-
-  push-to-dockerhub:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-
-    # Map secrets to env vars, then use env in the if: guard
-    env:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-
-    # Only run this job if both env vars are non-empty
-    if: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build (tag for Hub)
-        run: |
-          docker build -t diet-analysis:ci .
-          docker tag diet-analysis:ci "$DOCKERHUB_USERNAME/diet-analysis:latest"
-
-      - name: Login to Docker Hub
-        run: |
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
-      - name: Push image
-        run: docker push "$DOCKERHUB_USERNAME/diet-analysis:latest"
