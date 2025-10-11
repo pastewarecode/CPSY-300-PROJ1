@@ -1,8 +1,12 @@
 """
 Project 1 - Task 1: Dataset Analysis & Insights
 ------------------------------------------------
-This script processes the All_Diets.csv dataset to extract and visualize
+Script to process the All_Diets.csv dataset to extract and visualize
 nutritional insights for various diet types and cuisines.
+
+Script to process the All_Diets.csv dataset to to read and organize the data into managable
+formats for analysis. The script will process the data into various csv files and charts 
+used for visualization.
 
 Key features:
 - Cleans missing data
@@ -17,47 +21,34 @@ Author: Cody Tran
 Date: 2024-08-08
 """
 
-# ========== IMPORTS ==========
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime
 import os
 
-# ========== CONFIG ==========
-DATA_PATH = "All_Diets.csv"  # Update if in different folder
+#Global Definitions
+DATA_PATH = "All_Diets.csv"  
 OUTPUT_DIR = "outputs"
 
-# Ensure output directory exists
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+numeric_cols = ['Protein(g)', 'Carbs(g)', 'Fat(g)']
 
-# ========== 1. LOAD DATA ==========
+
+#Load datasets 
 print("\n[INFO] Loading dataset...")
 df = pd.read_csv(DATA_PATH)
 print(f"[INFO] Dataset loaded successfully with {df.shape[0]} rows and {df.shape[1]} columns.\n")
 
-# ========== 2. DATA CLEANING ==========
-print("[INFO] Cleaning missing values...")
-numeric_cols = ['Protein(g)', 'Carbs(g)', 'Fat(g)']
-df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
-df['Diet_type'] = df['Diet_type'].str.strip().str.title()
-df['Cuisine_type'] = df['Cuisine_type'].str.strip().str.title()
-print("[INFO] Missing values handled.\n")
 
-# ========== 3. CALCULATE METRICS ==========
-print("[INFO] Calculating average macronutrients per diet type...")
-avg_macros = df.groupby('Diet_type')[numeric_cols].mean().round(2)
-print(avg_macros, "\n")
+#Calculate averages of macros and print to csv
+avg_macros = df.groupby("Diet_type")[["Protein(g)", "Carbs(g)", "Fat(g)"]].mean()
+avg_macros.to_csv("output/average_macronutrients.csv", index=True)
 
-print("[INFO] Finding top 5 protein-rich recipes per diet type...")
-top_protein = (
-    df.sort_values(by='Protein(g)', ascending=False)
-    .groupby('Diet_type')
-    .head(5)
-    [['Diet_type', 'Recipe_name', 'Protein(g)', 'Cuisine_type']]
-)
-print(top_protein.head(10), "\n")
+#Sort top 5 rich protein diets and print to csv
+top_protein = df.sort_values("Protein(g)", ascending=False).groupby("Diet_type").head(5)
+top_protein.to_csv("output/top5_protein_recipes.csv", index=False)
 
+#
 print("[INFO] Calculating ratios...")
 df['Protein_to_Carbs_ratio'] = (df['Protein(g)'] / df['Carbs(g)']).replace([float('inf'), -float('inf')], 0)
 df['Carbs_to_Fat_ratio'] = (df['Carbs(g)'] / df['Fat(g)']).replace([float('inf'), -float('inf')], 0)
