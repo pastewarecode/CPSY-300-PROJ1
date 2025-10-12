@@ -3,7 +3,7 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from data_analysis import run_analysis
+from diet_analysis.data_analysis import run_analysis
 
 
 app = Flask(__name__)
