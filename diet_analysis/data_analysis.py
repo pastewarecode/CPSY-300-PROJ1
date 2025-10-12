@@ -3,13 +3,17 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 
+#Run this to install dependencies
+# "pip install pandas matplotlib seaborn"
+#Then activate venv and run the script with "python diet_analysis/data_analysis.py"
+
 #Setting up output folder
 output_folder = 'output'
 os.makedirs(output_folder, exist_ok=True)
 os.makedirs(os.path.join(output_folder, "visuals"), exist_ok=True)
 
 #Load the dataset and display basic information
-df = pd.read_csv('data/All_Diets.csv')
+df = pd.read_csv('diet_analysis/All_Diets.csv')
 print("[INFO] Dataset successfully loaded.\n")
 
 print("[INFO] Dataset Overview:")
@@ -47,8 +51,8 @@ print("[INFO] Saved top5_protein_recipes_by_diet.csv")
 df['Protein_to_Carbs_ratio'] = df['Protein(g)'] / df['Carbs(g)']
 df['Carbs_to_Fat_ratio'] = df['Carbs(g)'] / df['Fat(g)']
 
-df.to_csv(os.path.join(output_folder, "processed_data_with_ratios.csv"), index=False)
-print("[INFO] Saved processed_data_with_ratios.csv (with new metrics).")
+df.to_csv(os.path.join(output_folder, "processed_data_with_metrics.csv"), index=False)
+print("[INFO] Saved processed_data_with_metrics.csv (with new metrics).")
 
 
 # --- Visualizations ---
@@ -73,7 +77,7 @@ plt.savefig(os.path.join(output_folder, "visuals", "macronutrient_heatmap.png"))
 plt.show()
 print("[INFO] Saved macronutrient_heatmap.png")
 
-#Scatter plots to display the top 5 protein-rich recipes and their distribution across different cuisines.
+#Scatter plots to display the top 5 protein-rich recipes and their distribution across different cuisines
 plt.figure(figsize=(10,6))
 sns.scatterplot(
     data=top_protein,
