@@ -1,116 +1,94 @@
-"""
-Project 1 - Task 1: Dataset Analysis & Insights
-------------------------------------------------
-Script to process the All_Diets.csv dataset to extract and visualize
-nutritional insights for various diet types and cuisines.
-
-Script to process the All_Diets.csv dataset to to read and organize the data into managable
-formats for analysis. The script will process the data into various csv files and charts 
-used for visualization.
-
-Key features:
-- Cleans missing data
-- Calculates averages and ratios
-- Identifies top protein-rich recipes
-- Visualizes macronutrient trends
-
-INSTALL DEPENDENCIES:
-pip install pandas seaborn matplotlib
-------------------------------------------------
-Author: Cody Tran
-Date: 2024-08-08
-"""
-
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from datetime import datetime
 import os
 
-#Global Definitions
-DATA_PATH = "All_Diets.csv"  
-OUTPUT_DIR = "outputs"
+#Setting up output folder
+output_folder = 'output'
+os.makedirs(output_folder, exist_ok=True)
+os.makedirs(os.path.join(output_folder, "visuals"), exist_ok=True)
+
+#Load the dataset and display basic information
+df = pd.read_csv('data/All_Diets.csv')
+print("[INFO] Dataset successfully loaded.\n")
+
+print("[INFO] Dataset Overview:")
+print(df.info())
+print("\nFirst 5 rows of dataset:\n", df.head(), "\n")
+
+
+#Clean the data by handling missing values. Strips whitespace and standardizes text case.
+if 'Diet_type' in df.columns:
+    df['Diet_type'] = df['Diet_type'].str.strip().str.title()
+if 'Cuisine_type' in df.columns:
+    df['Cuisine_type'] = df['Cuisine_type'].str.strip().str.title()
+print("[INFO] Data formatted (no missing values found).\n")
 
 numeric_cols = ['Protein(g)', 'Carbs(g)', 'Fat(g)']
+for col in numeric_cols:
+    if col in df.columns:
+        df[col] = df[col].fillna(df[col].mean())
+
+df = df.fillna('Unknown')
+print("[INFO] Missing values handled (numeric → mean, others → 'Unknown').\n")
 
 
-#Load datasets 
-print("\n[INFO] Loading dataset...")
-df = pd.read_csv(DATA_PATH)
-print(f"[INFO] Dataset loaded successfully with {df.shape[0]} rows and {df.shape[1]} columns.\n")
+#Calculate the average macronutrient content for each diet type
+avg_macros = df.groupby('Diet_type')[['Protein(g)', 'Carbs(g)', 'Fat(g)']].mean()
+avg_macros.to_csv(os.path.join(output_folder, "average_macros_by_diet.csv"))
+print("[INFO] Saved average_macros_by_diet.csv")
+
+#Find the top 5 protein-rich recipes for each diet type
+top_protein = df.sort_values('Protein(g)', ascending=False).groupby('Diet_type').head(5)
+top_protein.to_csv(os.path.join(output_folder, "top5_protein_recipes_by_diet.csv"), index=False)
+print("[INFO] Saved top5_protein_recipes_by_diet.csv")
+
+#Add new metrics (Protein-to-Carbs ratio and Carbs-to-Fat ratio)
+df['Protein_to_Carbs_ratio'] = df['Protein(g)'] / df['Carbs(g)']
+df['Carbs_to_Fat_ratio'] = df['Carbs(g)'] / df['Fat(g)']
+
+df.to_csv(os.path.join(output_folder, "processed_data_with_ratios.csv"), index=False)
+print("[INFO] Saved processed_data_with_ratios.csv (with new metrics).")
 
 
-#Calculate averages of macros and print to csv
-avg_macros = df.groupby("Diet_type")[["Protein(g)", "Carbs(g)", "Fat(g)"]].mean()
-avg_macros.to_csv("output/average_macronutrients.csv", index=True)
-
-#Sort top 5 rich protein diets and print to csv
-top_protein = df.sort_values("Protein(g)", ascending=False).groupby("Diet_type").head(5)
-top_protein.to_csv("output/top5_protein_recipes.csv", index=False)
-
-#
-print("[INFO] Calculating ratios...")
-df['Protein_to_Carbs_ratio'] = (df['Protein(g)'] / df['Carbs(g)']).replace([float('inf'), -float('inf')], 0)
-df['Carbs_to_Fat_ratio'] = (df['Carbs(g)'] / df['Fat(g)']).replace([float('inf'), -float('inf')], 0)
-
-# ========== 4. FIND INSIGHTS ==========
-highest_protein_diet = avg_macros['Protein(g)'].idxmax()
-print(f"[INSIGHT] Diet with highest average protein: {highest_protein_diet}\n")
-
-most_common_cuisines = df.groupby('Diet_type')['Cuisine_type'].agg(lambda x: x.mode().iat[0] if not x.mode().empty else 'N/A')
-print("[INSIGHT] Most common cuisine per diet type:\n", most_common_cuisines, "\n")
-
-# ========== 5. VISUALIZATIONS ==========
-print("[INFO] Generating visualizations...")
-
-# Bar chart - Average macronutrients by diet type
-plt.figure(figsize=(10, 6))
-avg_macros.plot(kind='bar', width=0.8)
-plt.title("Average Macronutrient Content by Diet Type", fontsize=14, weight='bold')
-plt.xlabel("Diet Type")
-plt.ylabel("Grams (g)")
-plt.xticks(rotation=45, ha='right')
-plt.grid(axis='y', linestyle='--', alpha=0.7)
+# --- Visualizations ---
+#Bar chart for average macronutrients
+plt.figure(figsize=(10,6))
+avg_macros.plot(kind='bar')
+plt.title('Average Macronutrient Content by Diet Type', fontsize=14)
+plt.xlabel('Diet Type')
+plt.ylabel('Grams (g)')
+plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig(f"{OUTPUT_DIR}/avg_macros_bar_chart.png")
-plt.close()
+plt.savefig(os.path.join(output_folder, "visuals", "avg_macros_bar_chart.png"))
+plt.show()
+print("[INFO] Saved avg_macros_bar_chart.png")
 
-# Heatmap - Correlation of macros per diet type
-plt.figure(figsize=(8, 5))
-sns.heatmap(avg_macros.corr(), annot=True, cmap="YlGnBu", fmt=".2f")
-plt.title("Correlation Between Macronutrients", fontsize=14, weight='bold')
+#Heatmaps showing relationship between macronutrient content and diet types
+plt.figure(figsize=(8,6))
+sns.heatmap(avg_macros, annot=True, cmap='YlGnBu', fmt=".2f")
+plt.title('Macronutrient Relationship Across Diet Types', fontsize=14)
 plt.tight_layout()
-plt.savefig(f"{OUTPUT_DIR}/macros_heatmap.png")
-plt.close()
+plt.savefig(os.path.join(output_folder, "visuals", "macronutrient_heatmap.png"))
+plt.show()
+print("[INFO] Saved macronutrient_heatmap.png")
 
-# Scatter plot - Top protein-rich recipes
-plt.figure(figsize=(10, 6))
+#Scatter plots to display the top 5 protein-rich recipes and their distribution across different cuisines.
+plt.figure(figsize=(10,6))
 sns.scatterplot(
     data=top_protein,
     x='Cuisine_type',
     y='Protein(g)',
     hue='Diet_type',
-    palette='viridis',
-    s=80
+    size='Protein(g)',
+    sizes=(50, 300),
+    alpha=0.7
 )
-plt.title("Top 5 Protein-Rich Recipes by Cuisine", fontsize=14, weight='bold')
-plt.xticks(rotation=45, ha='right')
+plt.title('Top 5 Protein-Rich Recipes by Cuisine and Diet Type', fontsize=14)
+plt.xlabel('Cuisine Type')
+plt.ylabel('Protein (g)')
+plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig(f"{OUTPUT_DIR}/top_protein_scatter.png")
-plt.close()
-
-print(f"[SUCCESS] Visualizations saved in '{OUTPUT_DIR}' folder.\n")
-
-# ========== 6. LOG SUMMARY ==========
-summary = {
-    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    "Rows": len(df),
-    "Diet_with_Highest_Protein": highest_protein_diet,
-    "Output_Files": os.listdir(OUTPUT_DIR)
-}
-
-print("[SUMMARY]")
-for key, value in summary.items():
-    print(f"{key}: {value}")
-
-print("\n[INFO] Task 1 completed successfully ✅")
+plt.savefig(os.path.join(output_folder, "visuals", "top5_protein_scatter.png"))
+plt.show()
+print("[INFO] Saved top5_protein_scatter.png")
